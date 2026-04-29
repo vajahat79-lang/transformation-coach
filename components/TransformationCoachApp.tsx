@@ -1,30 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-
+import { useEffect, useState } from 'react';
 /* =========================================================
-   IRONPATH — Adaptive Strength Coaching (V6 · Polished UI)
-   Full polish pass:
-   ✅ Structured exercise rows (grid)
-   ✅ Tight spacing + mobile‑first layout
-   ✅ Clear Deload logic (no empty‑history false positive)
-   ✅ Visual hierarchy + gym‑grade feel (Strong / Hevy‑like)
+   IRONPATH — Pass 1: Visual Strike
+   Goal: Cinematic look without touching core logic
+   - Hero workout header
+   - Gradient cards
+   - Media-style exercise rows
+   - Cleaner hierarchy (reference-style)
    ========================================================= */
-
 
 /* ===================== Types ===================== */
 type Day = 1 | 2 | 3 | 4 | 5;
-
-type Workout = {
-  readonly title: string;
-  readonly focus: string;
-  readonly exercises: readonly string[];
-};
-
-type Readiness = { pain: number; energy: number; sleep: number };
 type Performance = { weight?: number; reps?: number };
-
-
+type Readiness = { pain: number; energy: number; sleep: number };
 type SessionLog = {
   date: string;
   day: Day;
@@ -33,198 +22,177 @@ type SessionLog = {
   performance: Record<string, Performance>;
 };
 
+
 /* ===================== Brand ===================== */
 const brand = {
-  bg: '#0B0B0D',
-  card: '#17171C',
-  accent: '#3B82F6',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  text: '#F8FAFC',
-  muted: '#9CA3AF',
+  bg: '#0b0b0d',
+  card: 'linear-gradient(180deg,#1f1f25 0%,#121215 100%)',
+  accent: '#3b82f6',
+  text: '#f8fafc',
+  muted: '#9ca3af',
+  divider: '#26262b',
 };
 
-/* ===================== Helpers ===================== */
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-function readinessScore(r: Readiness) {
-  return Math.round((((10 - r.pain) + r.energy + r.sleep) / 3) * 10) / 10;
-}
-
-
-function fatigueIndex(history: SessionLog[]) {
-  if (history.length < 3) return 0;
-  const recent = history.slice(0, 7);
-  const avg = recent.reduce((s, h) => s + readinessScore(h.readiness), 0) / recent.length;
-  return Math.round((7.5 - avg) * 10) / 10;
-}
-
-function shouldDeload(history: SessionLog[]) {
-  if (history.length < 3) return false;
-  const fatigue = fatigueIndex(history);
-  const lowStreak = history.slice(0, 3).every(h => readinessScore(h.readiness) < 5.5);
-  return fatigue >= 3 || lowStreak;
-}
-
-
+const workouts: Record<Day, { title: string; focus: string; exercises: string[] }> = {
+  1: { title: 'Upper Push', focus: 'Chest · Shoulders · Triceps', exercises: ['DB Bench', 'Incline Press', 'Landmine Press', 'Pushdown'] },
+  2: { title: 'Upper Pull', focus: 'Back · Rear Delts · Biceps', exercises: ['Row', 'Pulldown', 'Face Pull', 'Hammer Curl'] },
+  3: { title: 'Lower Body', focus: 'Glutes · Quads · Hamstrings', exercises: ['Leg Press', 'RDL', 'Split Squat', 'Calf Raise'] },
+  4: { title: 'Conditioning', focus: 'Engine · Core', exercises: ['Bike Intervals', 'Pallof Press', 'Farmer Carry', 'Reverse Crunch'] },
+  5: { title: 'Optional Mix', focus: 'Weak Points · Pump', exercises: ['Goblet Squat', 'Machine Press', 'Row', 'Laterals'] },
+};
 /* ===================== Component ===================== */
 export default function IronPathApp() {
   const [day, setDay] = useState<Day>(1);
   const [timer, setTimer] = useState(90);
   const [running, setRunning] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [gymMode, setGymMode] = useState(true);
-
-
-  const [readiness] = useState<Readiness>({ pain: 2, energy: 7, sleep: 7 });
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [performance, setPerformance] = useState<Record<string, Performance>>({});
-  const [history, setHistory] = useState<SessionLog[]>([]);
-
-  /* ===================== Data ===================== */
-  const workouts: Record<Day, Workout> = {
-    1: { title: 'Upper Push', focus: 'Chest · Shoulders · Triceps', exercises: ['DB Bench', 'Incline Press', 'Landmine Press', 'Pushdown'] },
-    2: { title: 'Upper Pull', focus: 'Back · Rear Delts · Biceps', exercises: ['Row', 'Pulldown', 'Face Pull', 'Hammer Curl'] },
-    3: { title: 'Lower Body', focus: 'Glutes · Quads · Hamstrings', exercises: ['Leg Press', 'RDL', 'Split Squat', 'Calf Raise'] },
-    4: { title: 'Conditioning', focus: 'Engine · Core', exercises: ['Bike Intervals', 'Pallof Press', 'Farmer Carry', 'Reverse Crunch'] },
-    5: { title: 'Optional Mix', focus: 'Weak Points · Pump', exercises: ['Goblet Squat', 'Machine Press', 'Row', 'Laterals'] },
-  };
-  const workout = workouts[day];
-  const fatigue = fatigueIndex(history);
-  const deload = shouldDeload(history);
-
 
   /* ===================== Timer ===================== */
   useEffect(() => {
     if (!running) return;
-    const id = setInterval(() => {
-      setTimer(t => t <= 1 ? (setRunning(false), 0) : t - 1);
-    }, 1000);
+    const id = setInterval(() => setTimer(t => t <= 1 ? (setRunning(false), 0) : t - 1), 1000);
     return () => clearInterval(id);
   }, [running]);
 
-  function resetTimer() {
-    setTimer(deload ? 120 : 90);
-  }
-
-  function saveSession() {
-    setHistory(h => [
-      { date: todayISO(), day, readiness, notes, performance },
-      ...h,
-    ].slice(0, 30));
-    setCompleted({});
-    setPerformance({});
-  }
-
-  /* ===================== UI ===================== */
+  const workout = workouts[day];
   return (
     <div style={{ minHeight: '100vh', background: brand.bg, color: brand.text }}>
-      <div style={{ maxWidth: 880, margin: '0 auto', padding: 20 }}>
-
-
-        {/* Header */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h1 style={{ letterSpacing: 1 }}>IRONPATH</h1>
-          <button onClick={() => setGymMode(v => !v)} style={{ opacity: 0.8 }}>
-            Gym Mode
-          </button>
-        </header>
-
-        {/* Status */}
-        <div style={{ fontSize: 14, color: brand.muted }}>
-          Fatigue: {fatigue}
-          {deload && <span style={{ color: brand.warning }}> · DELOAD ACTIVE</span>}
+      
+      {/* HERO */}
+      <div
+        style={{
+          padding: '40px 24px 32px',
+          background: 'linear-gradient(180deg,#101015 0%,#0b0b0d 100%)',
+          borderBottom: `1px solid ${brand.divider}`,
+        }}
+      >
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <h1 style={{ fontSize: 34, letterSpacing: 1 }}>{workout.title}</h1>
+          <div style={{ color: brand.muted, marginTop: 4 }}>{workout.focus}</div>
         </div>
-
-        {/* Day Selector */}
-        <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
-          {(Object.keys(workouts) as unknown as Day[]).map(d => (
+      </div>
+      {/* DAY PILLS */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 24px 0' }}>
+        <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
+          {[1, 2, 3, 4, 5].map(d => (
             <button
               key={d}
-              onClick={() => { setDay(d); resetTimer(); }}
+              onClick={() => setDay(d as Day)}
               style={{
-                padding: '10px 14px',
+                padding: '10px 16px',
                 borderRadius: 999,
-                background: d === day ? brand.accent : brand.card,
+                background: d === day ? brand.accent : '#1c1c22',
                 color: d === day ? '#fff' : brand.text,
-                fontWeight: d === day ? 600 : 400,
+                border: 'none',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
             >
               Day {d}
             </button>
           ))}
         </div>
-
-        {/* Workout Card */}
-        <div style={{ background: brand.card, borderRadius: 18, padding: 20 }}>
-          <h2>{workout.title}</h2>
-          <div style={{ color: brand.muted, marginBottom: 16 }}>{workout.focus}</div>
-
-
-          {/* Exercise Rows */}
+      </div>
+      {/* WORKOUT CARD */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
+        <div style={{ background: brand.card, borderRadius: 24, padding: 24 }}>
           {workout.exercises.map(e => (
             <div
               key={e}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 80px 80px',
+                gridTemplateColumns: '56px 1fr 70px 70px',
                 alignItems: 'center',
                 gap: 12,
-                padding: '10px 0',
-                borderBottom: `1px solid #222`,
+                padding: '14px 0',
+                borderBottom: `1px solid ${brand.divider}`,
               }}
             >
+              {/* MEDIA ICON */}
               <div
-                onClick={() => setCompleted(c => ({ ...c, [e]: !c[e] }))}
-                style={{ cursor: 'pointer', fontWeight: completed[e] ? 600 : 400 }}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: '#23232a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                }}
               >
-                {completed[e] ? '✅ ' : ''}{e}
+                🏋️
               </div>
+
+
+              {/* NAME */}
+              <div style={{ fontSize: 16 }}>{e}</div>
+
+
+              {/* KG */}
               <input
                 type="number"
-                inputMode="numeric"
                 placeholder="kg"
+                inputMode="numeric"
                 value={performance[e]?.weight ?? ''}
                 onChange={ev =>
                   setPerformance(p => ({ ...p, [e]: { ...p[e], weight: Number(ev.target.value) } }))
                 }
-                style={{ width: '100%' }}
+                style={{
+                  background: '#0f0f13',
+                  border: '1px solid #2a2a32',
+                  borderRadius: 12,
+                  color: '#fff',
+                  textAlign: 'center',
+                  padding: '8px 6px',
+                }}
               />
+
+
+              {/* REPS */}
               <input
                 type="number"
-                inputMode="numeric"
                 placeholder="reps"
+                inputMode="numeric"
                 value={performance[e]?.reps ?? ''}
                 onChange={ev =>
                   setPerformance(p => ({ ...p, [e]: { ...p[e], reps: Number(ev.target.value) } }))
                 }
-                style={{ width: '100%' }}
+                style={{
+                  background: '#0f0f13',
+                  border: '1px solid #2a2a32',
+                  borderRadius: 12,
+                  color: '#fff',
+                  textAlign: 'center',
+                  padding: '8px 6px',
+                }}
               />
             </div>
           ))}
         </div>
 
-        {/* Timer */}
-        <div style={{ background: brand.card, borderRadius: 18, padding: 20, marginTop: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 44, marginBottom: 8 }}>
+        {/* TIMER CARD */}
+        <div
+          style={{
+            background: brand.card,
+            borderRadius: 24,
+            padding: 24,
+            marginTop: 20,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 48, letterSpacing: 2 }}>
             {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-            <button onClick={() => setRunning(v => !v)}>{running ? 'Pause' : 'Start'}</button>
-            <button onClick={resetTimer}>Reset</button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 12 }}>
+            <button onClick={() => setRunning(v => !v)} style={{ padding: '10px 18px' }}>
+              {running ? 'Pause' : 'Start'}
+            </button>
+            <button onClick={() => setTimer(90)} style={{ padding: '10px 18px' }}>
+              Reset
+            </button>
           </div>
         </div>
-
-        {/* Notes */}
-        <textarea
-          placeholder="Session notes"
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          style={{ width: '100%', marginTop: 16, height: 90 }}
-        />
-        <button onClick={saveSession} style={{ marginTop: 8, width: '100%' }}>
-          Save Session
-        </button>
       </div>
     </div>
   );
