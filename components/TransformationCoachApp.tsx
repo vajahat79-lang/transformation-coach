@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-/* ===================== Types ===================== */
+// ===================== Types =====================
 type Day = 1 | 2 | 3 | 4 | 5;
 
 type Workout = {
@@ -12,19 +12,20 @@ type Workout = {
 };
 
 type Readiness = {
-  pain: number;
-  energy: number;
-  sleep: number;
+  pain: number;   // 0–10 (lower is better)
+  energy: number; // 0–10
+  sleep: number;  // 0–10
 };
 
 type SessionLog = {
-  date: string;
+  date: string; // YYYY-MM-DD
   day: Day;
   readiness: Readiness;
   notes: string;
+  performance: Record<string, { weight?: number; reps?: number }>;
 };
 
-/* ===================== Helpers ===================== */
+// ===================== Helpers =====================
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 function computeReadinessScore(r: Readiness): number {
@@ -37,7 +38,7 @@ function readinessAdvice(score: number): string {
   return '🧠 Reduce volume or skip optional work';
 }
 
-/* ===================== Component ===================== */
+// ===================== Component =====================
 export default function TransformationCoachApp() {
   const [day, setDay] = useState<Day>(1);
   const [timer, setTimer] = useState(90);
@@ -45,16 +46,12 @@ export default function TransformationCoachApp() {
   const [notes, setNotes] = useState('');
   const [gymMode, setGymMode] = useState(false);
 
-  const [readiness, setReadiness] = useState<Readiness>({
-    pain: 2,
-    energy: 7,
-    sleep: 7,
-  });
-
+  const [readiness, setReadiness] = useState<Readiness>({ pain: 2, energy: 7, sleep: 7 });
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [performance, setPerformance] = useState<Record<string, { weight?: number; reps?: number }>>({});
   const [history, setHistory] = useState<SessionLog[]>([]);
 
-  /* ===================== Workouts ===================== */
+  // ===================== Workouts =====================
   const workouts = useMemo(
     () => ({
       1: {
@@ -114,17 +111,11 @@ export default function TransformationCoachApp() {
   const workout: Workout = workouts[day];
   const readinessScore = computeReadinessScore(readiness);
 
-  /* ===================== Timer ===================== */
+  // ===================== Timer =====================
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
-      setTimer((t) => {
-        if (t <= 1) {
-          setRunning(false);
-          return 0;
-        }
-        return t - 1;
-      });
+      setTimer((t) => (t <= 1 ? (setRunning(false), 0) : t - 1));
     }, 1000);
     return () => clearInterval(id);
   }, [running]);
@@ -135,7 +126,7 @@ export default function TransformationCoachApp() {
     else setTimer(90);
   }
 
-  /* ===================== Persistence ===================== */
+  // ===================== Persistence =====================
   const STORAGE_KEY = 'tc_v5_state';
 
   useEffect(() => {
@@ -164,32 +155,35 @@ export default function TransformationCoachApp() {
       day,
       readiness,
       notes,
+      performance,
     };
     setHistory((h) => [entry, ...h.filter((x) => x.date !== entry.date)].slice(0, 30));
     setCompleted({});
+    setPerformance({});
   }
 
-  /* ===================== Auto Gym Mode ===================== */
+  // ===================== Auto Gym Mode =====================
   useEffect(() => {
-    if (window.innerWidth < 768) setGymMode(true);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setGymMode(true);
   }, []);
 
-  /* ===================== Styles ===================== */
+  // ===================== Styles =====================
   const bg = gymMode ? '#0b0b0d' : '#ffffff';
   const card = gymMode ? '#1a1a1f' : '#f4f4f5';
-  const fg = gymMode ? '#f8fafc' : '#111';
+  const fg = gymMode ? '#f8fafc' : '#111111';
 
-  /* ===================== UI ===================== */
+  // ===================== UI =====================
   return (
     <div style={{ minHeight: '100vh', background: bg, color: fg }}>
-      <div style={{ padding: 20, maxWidth: 820, margin: '0 auto' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ padding: 20, maxWidth: 860, margin: '0 auto' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Transformation Coach</h1>
           <button onClick={() => setGymMode((v) => !v)}>
             {gymMode ? 'Normal Mode' : 'Gym Mode'}
           </button>
         </header>
 
+        {/* Day Selector */}
         <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
           {[1, 2, 3, 4, 5].map((d) => (
             <button
@@ -197,6 +191,7 @@ export default function TransformationCoachApp() {
               onClick={() => {
                 setDay(d as Day);
                 setCompleted({});
+                setPerformance({});
                 resetTimer();
               }}
               style={{
@@ -211,64 +206,75 @@ export default function TransformationCoachApp() {
           ))}
         </div>
 
+        {/* Readiness */}
         <div style={{ background: card, padding: 16, borderRadius: 16 }}>
-          <strong>Readiness: {readinessScore}/10</strong>
+          <strong>Readiness: {readinessScore} / 10</strong>
           <div>{readinessAdvice(readinessScore)}</div>
         </div>
 
+        {/* Workout */}
         <div style={{ background: card, padding: 20, borderRadius: 20, marginTop: 16 }}>
           <h2>{workout.title}</h2>
           <p>{workout.focus}</p>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {workout.exercises.map((e) => (
-              <li
-                key={e}
-                onClick={() =>
-                  setCompleted((c) => ({ ...c, [e]: !c[e] }))
-                }
+
+          {workout.exercises.map((e) => (
+            <div key={e} style={{ marginBottom: 12 }}>
+              <div
+                onClick={() => setCompleted((c) => ({ ...c, [e]: !c[e] }))}
                 style={{
-                  padding: 10,
-                  borderRadius: 10,
-                  background: completed[e] ? '#22c55e' : 'transparent',
-                  marginBottom: 6,
                   cursor: 'pointer',
+                  fontWeight: completed[e] ? 'bold' : 'normal',
                 }}
               >
-                {completed[e] ? '✅ ' : ''}
-                {e}
-              </li>
-            ))}
-          </ul>
+                {completed[e] ? '✅ ' : ''}{e}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <input
+                  type="number"
+                  placeholder="kg"
+                  value={performance[e]?.weight ?? ''}
+                  onChange={(ev) =>
+                    setPerformance((p) => ({
+                      ...p,
+                      [e]: { ...p[e], weight: Number(ev.target.value) },
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="reps"
+                  value={performance[e]?.reps ?? ''}
+                  onChange={(ev) =>
+                    setPerformance((p) => ({
+                      ...p,
+                      [e]: { ...p[e], reps: Number(ev.target.value) },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div
-          style={{
-            background: card,
-            padding: 20,
-            borderRadius: 20,
-            marginTop: 16,
-            textAlign: 'center',
-          }}
-        >
+        {/* Timer */}
+        <div style={{ background: card, padding: 20, borderRadius: 20, marginTop: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 40 }}>
-            {String(Math.floor(timer / 60)).padStart(2, '0')}:
-            {String(timer % 60).padStart(2, '0')}
+            {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
           </div>
-          <button onClick={() => setRunning((v) => !v)}>
-            {running ? 'Pause' : 'Start'}
-          </button>
-          <button onClick={resetTimer}>Reset</button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button onClick={() => setRunning((v) => !v)}>{running ? 'Pause' : 'Start'}</button>
+            <button onClick={resetTimer}>Reset</button>
+          </div>
         </div>
 
+        {/* Notes */}
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Session notes…"
           style={{ width: '100%', marginTop: 16, height: 90 }}
         />
-        <button onClick={saveSession} style={{ marginTop: 8 }}>
-          Save Session
-        </button>
+        <button onClick={saveSession} style={{ marginTop: 8 }}>Save Session</button>
       </div>
     </div>
   );
