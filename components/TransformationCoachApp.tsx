@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-/* ---------------- Types ---------------- */
+/* ===================== Types ===================== */
 type Day = 1 | 2 | 3 | 4 | 5;
 
 type Workout = {
-  title: string;
-  focus: string;
-  exercises: string[];
+  readonly title: string;
+  readonly focus: string;
+  readonly exercises: readonly string[];
 };
 
 type Readiness = {
@@ -24,25 +24,21 @@ type SessionLog = {
   notes: string;
 };
 
-/* ---------------- Helpers ---------------- */
-const clamp = (v: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, v));
-
+/* ===================== Helpers ===================== */
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 function computeReadinessScore(r: Readiness): number {
-  const score = ((10 - r.pain) + r.energy + r.sleep) / 3;
-  return Math.round(score * 10) / 10;
+  return Math.round((((10 - r.pain) + r.energy + r.sleep) / 3) * 10) / 10;
 }
 
 function readinessAdvice(score: number): string {
-  if (score >= 7.5) return 'Push as planned';
-  if (score >= 5.5) return 'Train, keep 1–2 RIR';
-  return 'Reduce volume or skip optional work';
+  if (score >= 7.5) return '✅ Push as planned';
+  if (score >= 5.5) return '⚠️ Train, keep 1–2 reps in reserve';
+  return '🧠 Reduce volume or skip optional work';
 }
 
-/* ---------------- Component ---------------- */
-export default function TransformationCoachAppV4() {
+/* ===================== Component ===================== */
+export default function TransformationCoachApp() {
   const [day, setDay] = useState<Day>(1);
   const [timer, setTimer] = useState(90);
   const [running, setRunning] = useState(false);
@@ -55,70 +51,70 @@ export default function TransformationCoachAppV4() {
     sleep: 7,
   });
 
+  const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<SessionLog[]>([]);
 
-  /* ---------------- Workouts ---------------- */
+  /* ===================== Workouts ===================== */
   const workouts = useMemo(
-    () =>
-      ({
-        1: {
-          title: 'Upper Push',
-          focus: 'Chest / Shoulders / Triceps',
-          exercises: [
-            'DB Bench — 4 × 8–10',
-            'Incline Press — 3 × 10–12',
-            'Landmine Press — 3 × 8',
-            'Pushdown — 3 × 12–15',
-          ],
-        },
-        2: {
-          title: 'Upper Pull',
-          focus: 'Back / Rear Delts / Biceps',
-          exercises: [
-            'Row — 4 × 8–10',
-            'Pulldown — 4 × 10–12',
-            'Face Pull — 3 × 15',
-            'Hammer Curl — 3 × 10–12',
-          ],
-        },
-        3: {
-          title: 'Lower Body',
-          focus: 'Glutes / Quads / Hams',
-          exercises: [
-            'Leg Press — 4 × 8–10',
-            'RDL — 3 × 8',
-            'Split Squat — 3 × 10 / leg',
-            'Calf Raise — 4 × 12–15',
-          ],
-        },
-        4: {
-          title: 'Conditioning',
-          focus: 'Engine + Core',
-          exercises: [
-            'Bike Intervals — 8 × 20s',
-            'Pallof Press — 3 × 12',
-            'Farmer Carry — 4 × 30 m',
-            'Reverse Crunch — 3 × 15',
-          ],
-        },
-        5: {
-          title: 'Optional Mix',
-          focus: 'Light volume / weak points',
-          exercises: [
-            'Goblet Squat — 3 × 12',
-            'Machine Press — 3 × 12',
-            'Row — 3 × 12',
-            'Laterals — 3 × 15',
-          ],
-        },
-      } as const),
+    () => ({
+      1: {
+        title: 'Upper Push',
+        focus: 'Chest / Shoulders / Triceps',
+        exercises: [
+          'DB Bench — 4 × 8–10',
+          'Incline Press — 3 × 10–12',
+          'Landmine Press — 3 × 8',
+          'Pushdown — 3 × 12–15',
+        ],
+      },
+      2: {
+        title: 'Upper Pull',
+        focus: 'Back / Rear Delts / Biceps',
+        exercises: [
+          'Row — 4 × 8–10',
+          'Pulldown — 4 × 10–12',
+          'Face Pull — 3 × 15',
+          'Hammer Curl — 3 × 10–12',
+        ],
+      },
+      3: {
+        title: 'Lower Body',
+        focus: 'Glutes / Quads / Hamstrings',
+        exercises: [
+          'Leg Press — 4 × 8–10',
+          'RDL — 3 × 8',
+          'Split Squat — 3 × 10 / leg',
+          'Calf Raise — 4 × 12–15',
+        ],
+      },
+      4: {
+        title: 'Conditioning',
+        focus: 'Engine + Core',
+        exercises: [
+          'Bike Intervals — 8 × 20s',
+          'Pallof Press — 3 × 12',
+          'Farmer Carry — 4 × 30 m',
+          'Reverse Crunch — 3 × 15',
+        ],
+      },
+      5: {
+        title: 'Optional Mix',
+        focus: 'Light volume / weak points',
+        exercises: [
+          'Goblet Squat — 3 × 12',
+          'Machine Press — 3 × 12',
+          'Row — 3 × 12',
+          'Laterals — 3 × 15',
+        ],
+      },
+    }),
     []
   );
 
   const workout: Workout = workouts[day];
   const readinessScore = computeReadinessScore(readiness);
 
-  /* ---------------- Timer ---------------- */
+  /* ===================== Timer ===================== */
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
@@ -133,8 +129,14 @@ export default function TransformationCoachAppV4() {
     return () => clearInterval(id);
   }, [running]);
 
-  /* ---------------- Persistence ---------------- */
-  const STORAGE_KEY = 'tc_v4_gym_mode';
+  function resetTimer() {
+    if (readinessScore < 5.5) setTimer(120);
+    else if (readinessScore >= 7.5) setTimer(75);
+    else setTimer(90);
+  }
+
+  /* ===================== Persistence ===================== */
+  const STORAGE_KEY = 'tc_v5_state';
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -145,7 +147,7 @@ export default function TransformationCoachAppV4() {
       if (d.notes) setNotes(d.notes);
       if (d.readiness) setReadiness(d.readiness);
       if (d.history) setHistory(d.history);
-      if (d.gymMode) setGymMode(d.gymMode);
+      if (d.gymMode !== undefined) setGymMode(d.gymMode);
     } catch {}
   }, []);
 
@@ -163,47 +165,45 @@ export default function TransformationCoachAppV4() {
       readiness,
       notes,
     };
-    setHistory((h) =>
-      [entry, ...h.filter((x) => x.date !== entry.date)].slice(0, 30)
-    );
+    setHistory((h) => [entry, ...h.filter((x) => x.date !== entry.date)].slice(0, 30));
+    setCompleted({});
   }
 
-  /* ---------------- Styles ---------------- */
-  const bg = gymMode ? '#0e0e0e' : '#ffffff';
-  const fg = gymMode ? '#f5f5f5' : '#111111';
-  const card = gymMode ? '#1c1c1c' : '#f5f5f5';
+  /* ===================== Auto Gym Mode ===================== */
+  useEffect(() => {
+    if (window.innerWidth < 768) setGymMode(true);
+  }, []);
 
-  /* ---------------- UI ---------------- */
+  /* ===================== Styles ===================== */
+  const bg = gymMode ? '#0b0b0d' : '#ffffff';
+  const card = gymMode ? '#1a1a1f' : '#f4f4f5';
+  const fg = gymMode ? '#f8fafc' : '#111';
+
+  /* ===================== UI ===================== */
   return (
     <div style={{ minHeight: '100vh', background: bg, color: fg }}>
-      <div style={{ padding: 20, maxWidth: 760, margin: '0 auto' }}>
-        <header
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <h1 style={{ fontSize: gymMode ? 30 : 24 }}>
-            Transformation Coach
-          </h1>
+      <div style={{ padding: 20, maxWidth: 820, margin: '0 auto' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <h1>Transformation Coach</h1>
           <button onClick={() => setGymMode((v) => !v)}>
             {gymMode ? 'Normal Mode' : 'Gym Mode'}
           </button>
         </header>
 
-        {/* Day selector */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '16px 0' }}>
-          {([1, 2, 3, 4, 5] as const).map((d) => (
+        <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
+          {[1, 2, 3, 4, 5].map((d) => (
             <button
               key={d}
-              onClick={() => setDay(d)}
+              onClick={() => {
+                setDay(d as Day);
+                setCompleted({});
+                resetTimer();
+              }}
               style={{
-                padding: gymMode ? '14px 18px' : '8px 12px',
-                fontSize: gymMode ? 18 : 14,
+                padding: '10px 14px',
+                borderRadius: 12,
                 background: day === d ? '#3b82f6' : card,
                 color: day === d ? '#fff' : fg,
-                borderRadius: 10,
               }}
             >
               Day {d}
@@ -211,66 +211,64 @@ export default function TransformationCoachAppV4() {
           ))}
         </div>
 
-        {/* Readiness */}
-        <div style={{ background: card, padding: 16, borderRadius: 14 }}>
-          <strong>Readiness: {readinessScore} / 10</strong>
-          <div style={{ marginTop: 4 }}>
-            {readinessAdvice(readinessScore)}
-          </div>
+        <div style={{ background: card, padding: 16, borderRadius: 16 }}>
+          <strong>Readiness: {readinessScore}/10</strong>
+          <div>{readinessAdvice(readinessScore)}</div>
         </div>
 
-        {/* Workout */}
-        <div style={{ background: card, padding: 20, borderRadius: 16, marginTop: 16 }}>
-          <h2 style={{ fontSize: gymMode ? 26 : 20 }}>{workout.title}</h2>
-          <p style={{ opacity: 0.7 }}>{workout.focus}</p>
-          <ul style={{ fontSize: gymMode ? 20 : 14 }}>
+        <div style={{ background: card, padding: 20, borderRadius: 20, marginTop: 16 }}>
+          <h2>{workout.title}</h2>
+          <p>{workout.focus}</p>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
             {workout.exercises.map((e) => (
-              <li key={e}>{e}</li>
+              <li
+                key={e}
+                onClick={() =>
+                  setCompleted((c) => ({ ...c, [e]: !c[e] }))
+                }
+                style={{
+                  padding: 10,
+                  borderRadius: 10,
+                  background: completed[e] ? '#22c55e' : 'transparent',
+                  marginBottom: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                {completed[e] ? '✅ ' : ''}
+                {e}
+              </li>
             ))}
           </ul>
         </div>
 
-        {/* Timer */}
         <div
           style={{
             background: card,
             padding: 20,
-            borderRadius: 16,
+            borderRadius: 20,
             marginTop: 16,
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: gymMode ? 48 : 32 }}>
+          <div style={{ fontSize: 40 }}>
             {String(Math.floor(timer / 60)).padStart(2, '0')}:
             {String(timer % 60).padStart(2, '0')}
           </div>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 8 }}>
-            <button onClick={() => setRunning((v) => !v)}>
-              {running ? 'Pause' : 'Start'}
-            </button>
-            <button
-              onClick={() => {
-                setRunning(false);
-                setTimer(90);
-              }}
-            >
-              Reset
-            </button>
-          </div>
+          <button onClick={() => setRunning((v) => !v)}>
+            {running ? 'Pause' : 'Start'}
+          </button>
+          <button onClick={resetTimer}>Reset</button>
         </div>
 
-        {/* Notes */}
-        <div style={{ marginTop: 16 }}>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Short notes…"
-            style={{ width: '100%', height: 80 }}
-          />
-          <button onClick={saveSession} style={{ marginTop: 8 }}>
-            Save Session
-          </button>
-        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Session notes…"
+          style={{ width: '100%', marginTop: 16, height: 90 }}
+        />
+        <button onClick={saveSession} style={{ marginTop: 8 }}>
+          Save Session
+        </button>
       </div>
     </div>
   );
