@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 export default function TransformationCoachApp() {
-  const [day, setDay] = useState(1);
+  const [day, setDay] = useState<1 | 2 | 3>(1);
   const [timer, setTimer] = useState(90);
   const [running, setRunning] = useState(false);
   const [notes, setNotes] = useState('');
