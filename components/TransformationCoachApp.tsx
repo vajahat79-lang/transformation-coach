@@ -1,27 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+
 /* =========================================================
-   IRONPATH — Pass 1: Visual Strike
-   Goal: Cinematic look without touching core logic
-   - Hero workout header
-   - Gradient cards
-   - Media-style exercise rows
-   - Cleaner hierarchy (reference-style)
+   IRONPATH — Pass 2: Motion + Graphs
+   Adds:
+   ✅ Workout / Graphs toggle
+   ✅ Full analytics screen (reference-style)
+   ✅ Subtle motion + transitions
+   ✅ Animated timer pulse
    ========================================================= */
+
 
 /* ===================== Types ===================== */
 type Day = 1 | 2 | 3 | 4 | 5;
 type Performance = { weight?: number; reps?: number };
-type Readiness = { pain: number; energy: number; sleep: number };
 type SessionLog = {
   date: string;
   day: Day;
-  readiness: Readiness;
-  notes: string;
   performance: Record<string, Performance>;
 };
-
 
 /* ===================== Brand ===================== */
 const brand = {
@@ -33,166 +32,129 @@ const brand = {
   divider: '#26262b',
 };
 
-const workouts: Record<Day, { title: string; focus: string; exercises: string[] }> = {
-  1: { title: 'Upper Push', focus: 'Chest · Shoulders · Triceps', exercises: ['DB Bench', 'Incline Press', 'Landmine Press', 'Pushdown'] },
-  2: { title: 'Upper Pull', focus: 'Back · Rear Delts · Biceps', exercises: ['Row', 'Pulldown', 'Face Pull', 'Hammer Curl'] },
-  3: { title: 'Lower Body', focus: 'Glutes · Quads · Hamstrings', exercises: ['Leg Press', 'RDL', 'Split Squat', 'Calf Raise'] },
-  4: { title: 'Conditioning', focus: 'Engine · Core', exercises: ['Bike Intervals', 'Pallof Press', 'Farmer Carry', 'Reverse Crunch'] },
-  5: { title: 'Optional Mix', focus: 'Weak Points · Pump', exercises: ['Goblet Squat', 'Machine Press', 'Row', 'Laterals'] },
+const workouts: Record<Day, { title: string; exercises: string[] }> = {
+  1: { title: 'Upper Push', exercises: ['DB Bench', 'Incline Press', 'Landmine Press', 'Pushdown'] },
+  2: { title: 'Upper Pull', exercises: ['Row', 'Pulldown', 'Face Pull', 'Hammer Curl'] },
+  3: { title: 'Lower Body', exercises: ['Leg Press', 'RDL', 'Split Squat', 'Calf Raise'] },
+  4: { title: 'Conditioning', exercises: ['Bike Intervals', 'Pallof Press', 'Farmer Carry', 'Reverse Crunch'] },
+  5: { title: 'Optional Mix', exercises: ['Goblet Squat', 'Machine Press', 'Row', 'Laterals'] },
 };
+
+
+/* ===================== Simple SVG Graph ===================== */
+function WeightGraph({ data }: { data: number[] }) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const points = data
+    .map((w, i) => {
+      const x = (i / (data.length - 1)) * 300;
+      const y = 100 - ((w - min) / (max - min || 1)) * 100;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+
+  return (
+    <svg width={320} height={120} style={{ marginTop: 12 }}>
+      <polyline fill="none" stroke={brand.accent} strokeWidth="3" points={points} />
+    </svg>
+  );
+}
+
+
 /* ===================== Component ===================== */
 export default function IronPathApp() {
+  const [view, setView] = useState<'workout' | 'graphs'>('workout');
   const [day, setDay] = useState<Day>(1);
   const [timer, setTimer] = useState(90);
   const [running, setRunning] = useState(false);
   const [performance, setPerformance] = useState<Record<string, Performance>>({});
+  const [history, setHistory] = useState<SessionLog[]>([]);
 
-  /* ===================== Timer ===================== */
+
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => setTimer(t => t <= 1 ? (setRunning(false), 0) : t - 1), 1000);
     return () => clearInterval(id);
   }, [running]);
 
+
+  function saveSession() {
+    setHistory(h => [
+      { date: new Date().toISOString(), day, performance },
+      ...h,
+    ]);
+    setPerformance({});
+  }
+
+
   const workout = workouts[day];
+
+
   return (
     <div style={{ minHeight: '100vh', background: brand.bg, color: brand.text }}>
-      
-      {/* HERO */}
-      <div
-        style={{
-          padding: '40px 24px 32px',
-          background: 'linear-gradient(180deg,#101015 0%,#0b0b0d 100%)',
-          borderBottom: `1px solid ${brand.divider}`,
-        }}
-      >
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <h1 style={{ fontSize: 34, letterSpacing: 1 }}>{workout.title}</h1>
-          <div style={{ color: brand.muted, marginTop: 4 }}>{workout.focus}</div>
-        </div>
-      </div>
-      {/* DAY PILLS */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 24px 0' }}>
-        <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
-          {[1, 2, 3, 4, 5].map(d => (
-            <button
-              key={d}
-              onClick={() => setDay(d as Day)}
-              style={{
-                padding: '10px 16px',
-                borderRadius: 999,
-                background: d === day ? brand.accent : '#1c1c22',
-                color: d === day ? '#fff' : brand.text,
-                border: 'none',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Day {d}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* WORKOUT CARD */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
-        <div style={{ background: brand.card, borderRadius: 24, padding: 24 }}>
-          {workout.exercises.map(e => (
-            <div
-              key={e}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '56px 1fr 70px 70px',
-                alignItems: 'center',
-                gap: 12,
-                padding: '14px 0',
-                borderBottom: `1px solid ${brand.divider}`,
-              }}
-            >
-              {/* MEDIA ICON */}
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: '#23232a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                }}
-              >
-                🏋️
-              </div>
 
-
-              {/* NAME */}
-              <div style={{ fontSize: 16 }}>{e}</div>
-
-
-              {/* KG */}
-              <input
-                type="number"
-                placeholder="kg"
-                inputMode="numeric"
-                value={performance[e]?.weight ?? ''}
-                onChange={ev =>
-                  setPerformance(p => ({ ...p, [e]: { ...p[e], weight: Number(ev.target.value) } }))
-                }
-                style={{
-                  background: '#0f0f13',
-                  border: '1px solid #2a2a32',
-                  borderRadius: 12,
-                  color: '#fff',
-                  textAlign: 'center',
-                  padding: '8px 6px',
-                }}
-              />
-
-
-              {/* REPS */}
-              <input
-                type="number"
-                placeholder="reps"
-                inputMode="numeric"
-                value={performance[e]?.reps ?? ''}
-                onChange={ev =>
-                  setPerformance(p => ({ ...p, [e]: { ...p[e], reps: Number(ev.target.value) } }))
-                }
-                style={{
-                  background: '#0f0f13',
-                  border: '1px solid #2a2a32',
-                  borderRadius: 12,
-                  color: '#fff',
-                  textAlign: 'center',
-                  padding: '8px 6px',
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* TIMER CARD */}
-        <div
-          style={{
-            background: brand.card,
-            borderRadius: 24,
-            padding: 24,
-            marginTop: 20,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 48, letterSpacing: 2 }}>
-            {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 12 }}>
-            <button onClick={() => setRunning(v => !v)} style={{ padding: '10px 18px' }}>
-              {running ? 'Pause' : 'Start'}
-            </button>
-            <button onClick={() => setTimer(90)} style={{ padding: '10px 18px' }}>
-              Reset
-            </button>
+        {/* HEADER */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h1>IRONPATH</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setView('workout')} style={{ opacity: view === 'workout' ? 1 : 0.5 }}>Workout</button>
+            <button onClick={() => setView('graphs')} style={{ opacity: view === 'graphs' ? 1 : 0.5 }}>Graphs</button>
           </div>
-        </div>
+        </header>
+        {/* WORKOUT VIEW */}
+        {view === 'workout' && (
+          <div style={{ transition: 'opacity .3s' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {[1,2,3,4,5].map(d => (
+                <button key={d} onClick={() => setDay(d as Day)} style={{ padding: '8px 14px' }}>Day {d}</button>
+              ))}
+            </div>
+            <div style={{ background: brand.card, borderRadius: 24, padding: 24 }}>
+              {workout.exercises.map(e => (
+                <div key={e} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 12, marginBottom: 12 }}>
+                  <div>{e}</div>
+                  <input type="number" placeholder="kg" value={performance[e]?.weight ?? ''}
+                    onChange={ev => setPerformance(p => ({ ...p, [e]: { ...p[e], weight: Number(ev.target.value) } }))}
+                  />
+                  <input type="number" placeholder="reps" value={performance[e]?.reps ?? ''}
+                    onChange={ev => setPerformance(p => ({ ...p, [e]: { ...p[e], reps: Number(ev.target.value) } }))}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ background: brand.card, borderRadius: 24, padding: 24, marginTop: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 48, transform: running ? 'scale(1.05)' : 'scale(1)', transition: 'transform .3s' }}>
+                {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
+              </div>
+              <button onClick={() => setRunning(v => !v)}>{running ? 'Pause' : 'Start'}</button>
+              <button onClick={saveSession} style={{ marginLeft: 12 }}>Save</button>
+            </div>
+          </div>
+        )}
+
+        {/* GRAPHS VIEW */}
+        {view === 'graphs' && (
+          <div style={{ background: brand.card, borderRadius: 24, padding: 24, transition: 'opacity .3s' }}>
+            <h2>Progress</h2>
+            {Object.values(workouts).flatMap(w =>
+              w.exercises.map(e => {
+                const values = history
+                  .filter(h => h.performance?.[e]?.weight)
+                  .map(h => h.performance[e].weight!);
+                if (values.length < 2) return null;
+                return (
+                  <div key={e} style={{ marginTop: 20 }}>
+                    <strong>{e}</strong>
+                    <WeightGraph data={values} />
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
