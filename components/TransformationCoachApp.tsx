@@ -789,16 +789,67 @@ export default function IronPathApp() {
       <div style={{ height: 8 }}/>
 
       {/* Header */}
-      <div style={{ padding: '12px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', cursive", letterSpacing: 4, color: S.text, lineHeight: 1 }}>IRONPATH</div>
-          <div style={{ fontSize: 11, color: phaseColor, fontWeight: 600, letterSpacing: 2 }}>90-DAY TRANSFORMATION</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: S.muted }}>Current</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: phaseColor }}>Wk {week} · P{phase}</div>
-        </div>
-      </div>
+<div
+  style={{
+    padding: '12px 20px 0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  }}
+>
+  <div>
+    {/* App name */}
+    <div
+      style={{
+        fontSize: 26,
+        fontFamily: "'Bebas Neue', cursive",
+        letterSpacing: 4,
+        color: S.text,
+        lineHeight: 1,
+      }}
+    >
+      IRONPATH
+    </div>
+
+    {/* Program name */}
+    <div
+      style={{
+        fontSize: 11,
+        color: S.muted,
+        fontWeight: 600,
+        letterSpacing: 2,
+      }}
+    >
+      12‑WEEK TRANSFORMATION
+    </div>
+
+    {/* Attribution */}
+    <div
+      style={{
+        fontSize: 11,
+        color: S.muted,
+        marginTop: 4,
+      }}
+    >
+      Designed by Vajahat Sardar
+    </div>
+  </div>
+
+  {/* Context */}
+  <div style={{ textAlign: 'right' }}>
+    <div style={{ fontSize: 11, color: S.muted }}>Current</div>
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: phaseColor,
+      }}
+    >
+      Wk {week} · {PHASES[phase].name}
+    </div>
+  </div>
+</div>
 
       {/* Phase accent line */}
       <div style={{ height: 2, background: `linear-gradient(90deg, ${phaseColor}, transparent)`, margin: '0 20px 20px' }}/>
